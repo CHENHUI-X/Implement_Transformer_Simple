@@ -56,3 +56,5 @@
 ### 3.2 代码部分细节
 - 在实现MutiHead-Attention的时候,根据original paper,我们需要对输入X经过3个不同的linner transform得到 q,k,v ,然后再把q,k,v经过linner transformer 之后,去进行attention操作.见下图.
 	- ![image](https://user-images.githubusercontent.com/55629321/182082411-47d29c33-452e-4ac3-ba68-a6f583a728b5.png)
+- 最后我给出的例子是分析给定句子是Positive or Negative ,那么输入就是句子,输出是1 or 0 ,分别表示Positive or Negative.
+- 此外,我们在将句子做word embedding的时候,nn.embedding()函数吃的是句子单词在整个vocabulary中的索引.所以要做一些必要的预处理.具体细节可见代码注释.
