@@ -33,5 +33,6 @@
 ### 2.3 MutiHead-attention
 - MutiHEAD是original paper中提到的操作.
 - > Multi-head attention allows the model to jointly attend to information from different representation subspaces at different positions. With a single attention head, averaging inhibits this.
+	- 就是几个小弟乱拳打死老师傅的意思.
 - 具体操作就是,假设embedding dim 为 512 , head 为 8 ,那么每个head操作 512/8 = 64 维的q,k,v. 计算完之后,再把8个head的结果连接合并成一个512维vector,作为最终的attention结果.
-- ![image](https://user-images.githubusercontent.com/55629321/182073415-d89d2626-c100-43f8-a06a-a21452722ffc.png)
+	- ![image](https://user-images.githubusercontent.com/55629321/182073415-d89d2626-c100-43f8-a06a-a21452722ffc.png)
