@@ -16,16 +16,16 @@
 
 ### 2.2 Self attention
 
-- Transformer的一个很重要机制就是用到了self-attention.
+- Transformer的一个很重要机制就是用到了self-attention.它被用在Encoder中,用于解析句子的内容表征.
 - Attention机制,不管他具体怎么实现,其本质思想不变,就是**模仿"注意力",找重点内容,关键内容**.
-- Why attention(注意力)?
+- Why attention ?
     - 想想我们在做图片分类的时候,如果我们的model能够**抓住图片的重点**,那分类的时候是不是会很轻松,毕竟排除了没用到信息.
         
 	- ![attention1](https://github.com/CHENHUI-X/Implement_Transformer_Simple/blob/master/img/1__tlq4gNokNM9mhTkz2cEeg.png)
     - 在翻译任务或者机器人QA的时候,如果能快速**抓住句子的重点**并作出应答,也许就不会被人家叫人工智障了吧~
 	- ![attention2](https://github.com/CHENHUI-X/Implement_Transformer_Simple/blob/master/img/1_sRy3ukQziKP0TSQqlz3LCg.png)
 
-- How attention?
+- How attention ?
 	- Attention实现的方式多种多样,花里胡哨.Self-attention只是其中一种.**简单来说,其实就是计算权重,"权"的大小,理解为对不同内容的注意程度**,然后**加权求和得到一个向量**,这个向量一定程度就能够表示**综合主要内容和次要内容的抽象表征.**
 	- 细节这里就不给大家详述了,给大家推荐一个很好的Self-attention可视化计算过程. 看完你就明白,Self-attention计算过程其实很简单.
 	- [动手Self-attention](https://www.cvmart.net/community/detail/2018)
@@ -38,6 +38,13 @@
 - 具体操作就是,假设embedding dim 为 512 , head 为 8 ,那么每个head操作 512/8 = 64 维的q,k,v. 计算完之后,再把8个head的结果连接合并成一个512维vector,作为最终的attention结果.
 	- ![image](https://user-images.githubusercontent.com/55629321/182073415-d89d2626-c100-43f8-a06a-a21452722ffc.png)
 
+### 2.4 Mask-attention
+- 这个mask就是字面意思:"挡住,遮挡".这个Mask-attention主要用在decoder中.
+- Why mask ?
+	- 在语言翻译任务中,我们输入汉语,输出英语.比如 " 我 爱 你 " - > " I Love You " ,在解析" 我 爱 你 " 的时候我们是需要联系上下文的,也就是说,我们要把输入序列完完整整的做Self-attention,让Encoder充分的抽象出输入的全局表征信息.而在把输出序列放到Decoder中的时候,我们在对 " I Love You " 3个token分别做attention . 要注意,对于 " I " 来说,它应该是翻译任务输出的第1个token,那么这时,他在做attention的时候,只能attention到自己(因为 " Love You " 还没有输出来,应该被忽略[mask] ),而在对 " Love " 做attention的时候,它则可以attention到 " I " 和 " Love " , " You " 则应该被忽略(mask). 
+
+- How mask ?
+	- 了解了为什么需要mask,那实现起来其实很简单.我们知道,self-attention 就是计算权重,然后对value加权求和 . 那么假设当前正操作输出序列的第 i 个 token , 只需要把 i+1 之后的 value 对应的权重设置为一个非常小的数(1e-12),然后这样经过softmax之后, i+1 之后的value影响就会变为0,实现了mask 的效果. 具体实现可以见代码.
 
 ## Section 3 : Implementation 
 
@@ -58,3 +65,5 @@
 	- ![image](https://user-images.githubusercontent.com/55629321/182082411-47d29c33-452e-4ac3-ba68-a6f583a728b5.png)
 - 最后我给出的例子是分析给定句子是Positive or Negative ,那么输入就是句子,输出是1 or 0 ,分别表示Positive or Negative.
 - 此外,我们在将句子做word embedding的时候,nn.embedding()函数吃的是句子单词在整个vocabulary中的索引.所以要做一些必要的预处理.具体细节可见代码注释.
+- 使用的数据集来源:[Source data ](http://www.cs.cornell.edu/people/pabo/movie-review-data/)
+- 由于Transformer 不光要吃输入,还要吃输出,而我给的例子,输出仅仅单纯是0和1,在train model的时候,0 和 1这个输出很容易学到,所以模型准确率为1,指定是有问题的,但是我实在没有精力再去调整了,所以暂时先这样吧,但是Transformer模型架构木大问题.
