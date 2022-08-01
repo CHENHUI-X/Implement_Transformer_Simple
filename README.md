@@ -30,6 +30,7 @@
 	- 细节这里就不给大家详述了,给大家推荐一个很好的Self-attention可视化计算过程. 看完你就明白,Self-attention计算过程其实很简单.
 	- [动手Self-attention](https://www.cvmart.net/community/detail/2018)
 	- 可以看到,Self-attention吃一个序列,然后吐出相应的vector.因此这样的操作天然适合seq2seq任务,比如翻译任务.
+
 ### 2.3 MutiHead-attention
 - MutiHEAD是original paper中提到的操作.
 - > Multi-head attention allows the model to jointly attend to information from different representation subspaces at different positions. With a single attention head, averaging inhibits this.
@@ -51,4 +52,7 @@
 		- [Sinusoidal位置编码追根溯源](https://spaces.ac.cn/archives/8231)
 - 最后将position embedding 与 input embedding 加起来作为最终输入,进到Encoder.
 	- ![image](https://user-images.githubusercontent.com/55629321/182080749-82597447-2741-4561-8da3-4e3e22f712cc.png)
-)
+
+### 3.2 代码部分细节
+- 在实现MutiHead-Attention的时候,根据original paper,我们需要对输入X经过3个不同的linner transform得到 q,k,v ,然后再把q,k,v经过linner transformer 之后,去进行attention操作.见下图.
+	- ![image](https://user-images.githubusercontent.com/55629321/182082411-47d29c33-452e-4ac3-ba68-a6f583a728b5.png)
