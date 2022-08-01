@@ -39,7 +39,8 @@
 	- ![image](https://user-images.githubusercontent.com/55629321/182073415-d89d2626-c100-43f8-a06a-a21452722ffc.png)
 
 ### 2.4 Mask-attention
-- 这个mask就是字面意思:"挡住,遮挡".这个Mask-attention主要用在decoder中.
+- 这个mask就是字面意思:"挡住,遮挡".这个Mask-attention主要用在decoder中.![image](https://user-images.githubusercontent.com/55629321/182089508-a84a4442-f87e-470d-b357-6ddb0988d1ea.png)
+
 - Why mask ?
 	- 在语言翻译任务中,我们输入汉语,输出英语.比如 " 我 爱 你 " - > " I Love You " ,在解析" 我 爱 你 " 的时候我们是需要联系上下文的,也就是说,我们要把输入序列完完整整的做Self-attention,让Encoder充分的抽象出输入的全局表征信息.而在把输出序列放到Decoder中的时候,我们在对 " I Love You " 3个token分别做attention . 要注意,对于 " I " 来说,它应该是翻译任务输出的第1个token,那么这时,他在做attention的时候,只能attention到自己(因为 " Love You " 还没有输出来,应该被忽略[mask] ),而在对 " Love " 做attention的时候,它则可以attention到 " I " 和 " Love " , " You " 则应该被忽略(mask). 
 
