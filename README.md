@@ -4,6 +4,7 @@
 
 - 使用Pytorch简单实现一下Transformer结构,并进行实例测试,具体测试细节见Section 3.
 - [主要参考链接](https://www.kaggle.com/code/arunmohan003/transformer-from-scratch-using-pytorch/notebook)
+- [Another nice explain and implement for transformer](http://nlp.seas.harvard.edu/2018/04/03/attention.html)
 - 上述链接提供了Transformer的代码实现,本文主要对细节进行注释.
 - README文件中大部分图片都来自源链接,其余图片为网络上收集.
 
