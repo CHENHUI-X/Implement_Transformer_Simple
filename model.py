@@ -41,20 +41,16 @@ class PositionalEmbedding(nn.Module):
             embed_model_dim: demension of embedding
         """
         super(PositionalEmbedding, self).__init__()
-        self.embed_dim = embed_model_dim
 
-        pe = torch.zeros(max_seq_len, self.embed_dim)
-        # pos -> refers to order in the sentence
-        # i -> refers to position along embedding vector dimension
-        # if we have batch size of 32 and seq length of 10 and
-        # let embedding dimension be 512. Then we will have embedding vector
-        # of dimension 32 x 10 x 512. Similarly we will have positional encoding
-        # vector of dimension 32 x 10 x 512. Then we add both.
-        for pos in range(max_seq_len):
-            for i in range(0, self.embed_dim, 2):
-                pe[pos, i] = math.sin(pos / (10000 ** ((2 * i) / self.embed_dim)))
-                pe[pos, i + 1] = math.cos(pos / (10000 ** ((2 * (i + 1)) / self.embed_dim)))
-        pe = pe.unsqueeze(0)
+        pe = torch.zeros(max_seq_len, embed_model_dim)
+        position = torch.arange(0, max_seq_len, dtype=torch.float).unsqueeze(1)
+        # div_term = torch.exp(
+        #     torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+        # )
+        div_term = 1 / (10000 ** ((2 * np.arange(embed_model_dim)) / embed_model_dim))
+        pe[:, 0::2] = torch.sin(position * div_term[0::2])
+        pe[:, 1::2] = torch.cos(position * div_term[1::2])
+
         self.register_buffer('pe', pe)
         # 位置信息不需要train
 
@@ -65,13 +61,11 @@ class PositionalEmbedding(nn.Module):
         Returns:
             x: output
         """
-
         # make embeddings relatively larger
-        x = x * math.sqrt(self.embed_dim)
+        x = x * math.sqrt(self.embed_dim) # Maybe do not need this ?
         # add constant to embedding
         seq_len = x.size(1) # ( batch ,seq_len , embedding dim)
-        x = x + torch.autograd.Variable(self.pe[:, :seq_len], requires_grad=False)
-        # 这一步不需要计算梯度
+        x = x + self.pe[:seq_len].repeat(x.size(0),1,1)
         return x
 
 
