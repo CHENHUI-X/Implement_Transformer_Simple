@@ -80,6 +80,7 @@ def get_sentence(opt : any ) -> tuple[list,list] :
     # 3 . we split the  str according whitespace
 
     neg_sentence = []
+    # [[str],[str],[str],[str]]
     for file in neg_file_list:
         with open(neg_file_path + file, 'rb') as f:
             neg_sentence += [
@@ -109,6 +110,7 @@ def text2numeric(neg_sentence_list,pos_sentence_list) :
     # step 1 : collect all texts
     sentence_list = neg_sentence_list + pos_sentence_list
     all_words = []
+    # get all words [word1,word2,word3...]
     for i in sentence_list : all_words += i
 
     # step 2 : deduplication and sort
@@ -130,6 +132,7 @@ def text2numeric(neg_sentence_list,pos_sentence_list) :
     neg_sentence_len = [len(i) for i in neg_sentence_list]
 
     # step 6 : fill the sentence with 0
+    # [1,2,3,4,0,0,0,...]
     neg_sentence_list_with_index_and_fill = \
         [ index_list + [0] * (max_seq_len - le)
          for index_list ,le in zip(
@@ -144,6 +147,11 @@ def text2numeric(neg_sentence_list,pos_sentence_list) :
          zip(pos_sentence_list_with_index, pos_sentence_len)]
 
     # step 7 : prepare label
+    # [
+    #     [0 , 0 , 0 , 0 , 0 , 0 , 0...] ,
+    #     [0 , 0 , 0 , 0 , 0 , 0 , 0...] ,
+    #     [0 , 0 , 0 , 0 , 0 , 0 , 0...] ,
+    # ]
     neg_label = [[0]*max_seq_len] * len(neg_sentence_list_with_index_and_fill)
     pos_label = [[1]*max_seq_len] * len(pos_sentence_list_with_index_and_fill)
 
@@ -242,10 +250,16 @@ def train_and_val(opt,
               enumerate(train_dataloader), total=len(train_dataloader)
         ):
             step += 1
+            # out shape with (batch , seq_len , word_size)
             out = model(X_train,y_train)
+            # get pro of latest token in latest sequence
             y_pro = out.type(torch.FloatTensor)[:,-1,-1]
+            # get label
             pre_label = [ 1 if i >= 0.5 else 0 for i in y_pro ]
-            y = y_train.type(torch.FloatTensor)[:,-1]
+            # get label of latest token in every sequence
+            y = y_train.type(torch.FloatTensor)[:,-1] # y_train shape is (batch_size,  seq_len)
+            # that is we just predict probabilities of latest token of each sentence
+            # as label of this sentence
             print(pre_label,y)
             acc = accuracy_score(y, pre_label)
             loss = criterion(y_pro.unsqueeze(1), y.unsqueeze(1))

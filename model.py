@@ -16,6 +16,7 @@ class Embedding(nn.Module):
             embed_dim: dimension of embeddings
         """
         super(Embedding, self).__init__()
+        # return the embeddings according the input sequence with word index
         self.embed = nn.Embedding(vocab_size, embed_dim)
     def forward(self, x):
         """
@@ -43,7 +44,12 @@ class PositionalEmbedding(nn.Module):
         super(PositionalEmbedding, self).__init__()
 
         pe = torch.zeros(max_seq_len, embed_model_dim)
+
+        # notice the unsqueeze operation in this code ,
+        # it add a dimension so that when position * div_term
+        # it get a broadcast multiplication
         position = torch.arange(0, max_seq_len, dtype=torch.float).unsqueeze(1)
+
         # div_term = torch.exp(
         #     torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
         # )
@@ -66,6 +72,7 @@ class PositionalEmbedding(nn.Module):
         # add constant to embedding
         seq_len = x.size(1) # ( batch ,seq_len , embedding dim)
         x = x + self.pe[:seq_len].repeat(x.size(0),1,1)
+        # " repeat(x.size(0),1,1) "for every sequence do the same thing
         return x
 
 
@@ -150,15 +157,24 @@ class MultiHeadAttention(nn.Module):
 
         product = torch.matmul(q, k_adjusted)   # Q*K^T
         # (32 x 8 x 10 x 64) x (32 x 8 x 64 x 10) = #(32x8x10x10)
-        # 10 * 10 ,  first line represents the attention of the first word with other words
+        # 10 * 10 matrix ,  first line represents the attention of the first word with other words
 
         if mask is not None:
+            # in decoder it filled the upper triangular part with -1e20
+            """
+            mask = tensor([ [1., 0., 0., 0., 0.],
+                            [1., 1., 0., 0., 0.],
+                            [1., 1., 1., 0., 0.],
+                            [1., 1., 1., 1., 0.],
+                            [1., 1., 1., 1., 1.]])
+            """
             product = product.masked_fill(mask == 0, float("-1e20"))
 
         # divising by square root of key dimension
         product = product / math.sqrt(self.single_head_dim)  # / sqrt(64)
 
         # applying softmax
+        # that normalize the "weight" for a line
         scores = F.softmax(product, dim=-1)
 
         # mutiply with value matrix
@@ -211,7 +227,7 @@ class EncoderBlock(nn.Module):
            norm2_out: output of transformer block
 
         """
-
+        # key query values shape with (batch size,sequence length , embedding dimension)
         attention_out = self.attention(key, query, value, mask)  # 32x10x512
         attention_residual_out = attention_out + value  # 32x10x512
         norm1_out = self.dropout1(self.norm1(attention_residual_out))  # 32x10x512
@@ -249,7 +265,36 @@ class TransformerEncoder(nn.Module):
         )
 
     def forward(self, x):
+        # input x like this : let say batch is  2, and seq len is 10
+        # x  = [
+        #     [1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 0 , 0] ,
+        #     [1 , 2 , 3 , 4 , 5 , 6 , 0 , 0 , 0 , 0] ,
+        # ]
+
         embed_out = self.embedding_layer(x)
+        # lets say embedding dim is 512 ,
+        # batch is  2, and seq len is 10
+        # here we get the embedding output  is like this :
+        # now x shape with (batch , seq_len, embedding_dim)
+        """
+        x  = 
+        [
+            [
+                [vector 1 with 512 ], # for word 1 in seq 1 
+                    ...
+                [vector 10 with 512 ], # for word 10 in seq 1 
+            ] , # for seq 1 
+            [
+                [vector 1 with 512] ,  # for word 1 in seq  2
+                ...
+                [vector 10 with 512] ,  # for word 10 in seq 2  
+            ] ,  # for seq 2
+            
+        ]
+        
+        """
+
+
         out = self.positional_encoder(embed_out)
         for layer in self.layers:
             out = layer(out, out, out) # attention + forward
@@ -290,11 +335,14 @@ class DecoderBlock(nn.Module):
            out: output of transformer block
 
         """
-        # # the value come from previous layer ,that's generate from x
-        # key and query come from output of encoder,that's the parameter
-
+        # as you see , here is have a additional operation
+        # that is we execute attention on input itself with mask
+        # maybe this operation is not necessary
         mask_attention_out = self.attention(x, x, x, mask)  # 32x10x512
         value = self.dropout(self.norm(mask_attention_out + x))
+
+        # # the value come from previous layer ,that's generate from x
+        # key and query come from output of encoder,that's the parameter
         out = self.encoder_block(key, query, value, mask)
 
         return out
@@ -341,11 +389,11 @@ class TransformerDecoder(nn.Module):
         x = self.position_embedding(x)  # 32x10x512
         x = self.dropout(x)
 
-        for layer in self.layers:
+        for dec_layer in self.layers:
             # the value come from previous layer , that's x
             # key and query come from output of encoder , that's enc_out
-            x = layer(enc_out, enc_out, x, trg_mask)
-
+            x = dec_layer(enc_out, enc_out, x, trg_mask)
+        # out x shape with (b,seq,word_size)
         out = F.softmax(self.fc_out(x),dim = -1)
 
         return out
@@ -394,6 +442,17 @@ class Transformer(nn.Module):
         trg_mask = torch.tril(torch.ones((trg_len, trg_len))).expand(
             batch_size, 1, trg_len, trg_len
         )
+        '''
+        torch.tril(torch.ones((5, 5)))
+        tensor([[1., 0., 0., 0., 0.],
+                [1., 1., 0., 0., 0.],
+                [1., 1., 1., 0., 0.],
+                [1., 1., 1., 1., 0.],
+                [1., 1., 1., 1., 1.]])
+                
+        
+        
+        '''
         return trg_mask
 
     def forward(self, src, trg):
@@ -404,10 +463,18 @@ class Transformer(nn.Module):
         out:
             out: final vector which returns probabilities of each target word
         """
+        # the trg is input with (batch , seq with word index _
+        # assume batch = 2 , then we have trg like this ,
+        # here shape with (2,10)
+        # [
+        #     [1,2,3,4,5,0,0,0,0,0],
+        #     [2,3,2,2,1,1,1,1,0,0]
+        # ]
+
         trg_mask = self.make_trg_mask(trg)
-        enc_src = self.encoder(src)
+        enc_out = self.encoder(src) # same shape with input (batch , seq_len, embed_dim)
         # the output of encoder , used to generate q , k for attention in decoder
-        out = self.decoder(trg, enc_src, trg_mask)
+        out = self.decoder(trg, enc_out, trg_mask)
         return out
 
 
